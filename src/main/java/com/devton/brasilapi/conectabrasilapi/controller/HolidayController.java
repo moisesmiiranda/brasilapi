@@ -1,6 +1,6 @@
 package com.devton.brasilapi.conectabrasilapi.controller;
 
-import com.devton.brasilapi.conectabrasilapi.client.BrasilApiClientHolidays;
+import com.devton.brasilapi.conectabrasilapi.client.feign.integration.BrasilApiClient;
 import com.devton.brasilapi.conectabrasilapi.response.HolidayResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -15,15 +15,15 @@ import java.util.List;
 @RequestMapping("/holidays")
 @Tag(name = "Holidays", description = "Consulta feriados nacionais através da BrasilAPI")
 public class HolidayController {
-    private final BrasilApiClientHolidays brasilApiClientHolidays;
+    private final BrasilApiClient brasilApiClientHolidays;
 
-    public HolidayController(BrasilApiClientHolidays brasilApiClientHolidays) {
+    public HolidayController(BrasilApiClient brasilApiClientHolidays) {
         this.brasilApiClientHolidays = brasilApiClientHolidays;
     }
 
     @GetMapping("/{ano}")
     @Operation(summary = "Buscar feriados por ano", description = "Retorna a lista de feriados nacionais para o ano informado.")
     public List<HolidayResponse> getHolidays(@PathVariable int ano) {
-        return brasilApiClientHolidays.searchHolidays(ano);
+        return brasilApiClientHolidays.getHolidays(ano);
     }
 }

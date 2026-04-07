@@ -11,5 +11,5 @@ import java.util.List;
 public interface BrasilApiClient {
 
     @GetMapping("/{ano}")
-    List<HolidayResponse> getHolidays(@PathVariable("ano") int ano);
+    List<HolidayResponse> getHolidays(@PathVariable int ano);
 }

@@ -42,18 +42,18 @@ A API estará rodando em `http://localhost:8080`
 - **Rota:** `GET /feriados/{ano}`
 - **Exemplo de Requisição:**
   ```bash
-  curl -X GET "http://localhost:8080/feriados/2024"
+  curl -X GET "http://localhost:8080/feriados/2026"
   ```
 - **Exemplo de Resposta:**
   ```json
   [
     {
-      "data": "2025-01-01",
+      "data": "2026-01-01",
       "nome": "Confraternização Universal",
       "tipo": "national"
     },
     {
-      "data": "2025-04-21",
+      "data": "2026-04-21",
       "nome": "Tiradentes",
       "tipo": "national"
     }
@@ -67,6 +67,30 @@ A API possui documentação interativa via Swagger UI:
 
 - **Swagger UI:** [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
 - **OpenAPI JSON:** [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
+
+---
+
+## 🧪 Testes de Integração
+
+Os testes de integração estão localizados em `src/test/java/.../controller/HolidayControllerIntegrationTest.java` e utilizam **JUnit 5** com **Mockito** via `@MockBean`, carregando o contexto completo da aplicação com `@SpringBootTest`.
+
+### Cenários cobertos
+
+| Cenário | Resultado esperado |
+|---|---|
+| Ano com múltiplos feriados | `200 OK` + lista completa |
+| Ano sem feriados | `200 OK` + lista vazia `[]` |
+| Delegação do ano correto ao client | Verificação via `verify(mock)` |
+| Client externo lança exceção | `500 Internal Server Error` |
+| Ano com único feriado | `200 OK` + objeto correto |
+
+### Executar os testes
+
+```bash
+./gradlew test
+```
+
+Relatório gerado em `build/reports/tests/test/index.html`.
 
 ---
 

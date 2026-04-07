@@ -1,6 +1,6 @@
 package com.devton.brasilapi.conectabrasilapi.controller;
-
 import com.devton.brasilapi.conectabrasilapi.client.feign.integration.BrasilApiClient;
+import com.devton.brasilapi.conectabrasilapi.exception.ExternalApiException;
 import com.devton.brasilapi.conectabrasilapi.response.HolidayResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -9,27 +9,20 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-
 import java.util.Collections;
 import java.util.List;
-
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc
 @DisplayName("HolidayController - Integration Tests")
 class HolidayControllerIntegrationTest {
-
     @Autowired
     private MockMvc mockMvc;
-
     @MockitoBean
     private BrasilApiClient brasilApiClient;
-
     @Test
     @DisplayName("GET /holidays/{ano} deve retornar lista de feriados com status 200")
     void getHolidays_shouldReturnListOfHolidaysWithStatus200() throws Exception {
@@ -39,9 +32,7 @@ class HolidayControllerIntegrationTest {
                 new HolidayResponse("2026-04-21", "Tiradentes", "national"),
                 new HolidayResponse("2026-09-07", "Independência do Brasil", "national")
         );
-
         when(brasilApiClient.getHolidays(year)).thenReturn(mockHolidays);
-
         mockMvc.perform(get("/holidays/{ano}", year))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith("application/json"))
@@ -55,53 +46,54 @@ class HolidayControllerIntegrationTest {
                 .andExpect(jsonPath("$[2].date").value("2026-09-07"))
                 .andExpect(jsonPath("$[2].name").value("Independência do Brasil"))
                 .andExpect(jsonPath("$[2].type").value("national"));
-
         verify(brasilApiClient, times(1)).getHolidays(year);
     }
-
     @Test
     @DisplayName("GET /holidays/{ano} deve retornar lista vazia com status 200 quando não há feriados")
     void getHolidays_shouldReturnEmptyListWithStatus200() throws Exception {
         int year = 1800;
-
         when(brasilApiClient.getHolidays(year)).thenReturn(Collections.emptyList());
-
         mockMvc.perform(get("/holidays/{ano}", year))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith("application/json"))
                 .andExpect(jsonPath("$", hasSize(0)));
-
         verify(brasilApiClient, times(1)).getHolidays(year);
     }
-
     @Test
     @DisplayName("GET /holidays/{ano} deve repassar o ano correto ao BrasilApiClient")
     void getHolidays_shouldDelegateCorrectYearToClient() throws Exception {
         int year = 2025;
-
         when(brasilApiClient.getHolidays(year)).thenReturn(Collections.emptyList());
-
         mockMvc.perform(get("/holidays/{ano}", year))
                 .andExpect(status().isOk());
-
         verify(brasilApiClient, times(1)).getHolidays(year);
         verify(brasilApiClient, never()).getHolidays(intThat(y -> y != year));
     }
-
     @Test
-    @DisplayName("GET /holidays/{ano} deve propagar exceção quando o client externo falha")
-    void getHolidays_shouldPropagateExceptionWhenClientFails() {
+    @DisplayName("GET /holidays/{ano} deve retornar 500 com ErrorResponse quando o client lança RuntimeException")
+    void getHolidays_shouldReturn500WithErrorResponseOnRuntimeException() throws Exception {
         int year = 2026;
-
-        when(brasilApiClient.getHolidays(year)).thenThrow(new RuntimeException("BrasilAPI indisponível"));
-
-        assertThrows(Exception.class, () ->
-                mockMvc.perform(get("/holidays/{ano}", year))
-        );
-
+        when(brasilApiClient.getHolidays(year)).thenThrow(new RuntimeException("Unexpected error"));
+        mockMvc.perform(get("/holidays/{ano}", year))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.code").value("INTERNAL_ERROR"))
+                .andExpect(jsonPath("$.message").value("Error processing request"))
+                .andExpect(jsonPath("$.timestamp").exists());
         verify(brasilApiClient, times(1)).getHolidays(year);
     }
-
+    @Test
+    @DisplayName("GET /holidays/{ano} deve retornar 503 com ErrorResponse quando o client lança ExternalApiException")
+    void getHolidays_shouldReturn503WithErrorResponseOnExternalApiException() throws Exception {
+        int year = 2026;
+        when(brasilApiClient.getHolidays(year))
+                .thenThrow(new ExternalApiException("BrasilAPI is currently unavailable. Please try again later."));
+        mockMvc.perform(get("/holidays/{ano}", year))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("EXTERNAL_API_UNAVAILABLE"))
+                .andExpect(jsonPath("$.message").value("BrasilAPI is currently unavailable. Please try again later."))
+                .andExpect(jsonPath("$.timestamp").exists());
+        verify(brasilApiClient, times(1)).getHolidays(year);
+    }
     @Test
     @DisplayName("GET /holidays/{ano} deve retornar feriado único corretamente")
     void getHolidays_shouldReturnSingleHolidayCorrectly() throws Exception {
@@ -109,9 +101,7 @@ class HolidayControllerIntegrationTest {
         List<HolidayResponse> singleHoliday = List.of(
                 new HolidayResponse("2026-12-25", "Natal", "national")
         );
-
         when(brasilApiClient.getHolidays(year)).thenReturn(singleHoliday);
-
         mockMvc.perform(get("/holidays/{ano}", year))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
@@ -120,8 +110,3 @@ class HolidayControllerIntegrationTest {
                 .andExpect(jsonPath("$[0].type").value("national"));
     }
 }
-
-
-
-
-

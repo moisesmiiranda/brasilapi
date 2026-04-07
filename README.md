@@ -8,7 +8,7 @@ Esta é uma API REST desenvolvida em **Java 21** com **Spring Boot 3**, que cons
 - **Java 21**
 - **Spring Boot 3**
 - **Gradle**
-- **Spring WebFlux** (para consumo de API externa via WebClient)
+- **Spring Cloud OpenFeign** (para consumo de API externa via OpenFeign)
 - **Springdoc OpenAPI** (para documentação Swagger)
 
 ---
